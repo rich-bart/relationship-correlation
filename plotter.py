@@ -2,7 +2,8 @@
 Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
 Author: Richard Bartlewitz
 Creation: July 2026
-Plot time versus range for the sample track dataset."""
+Plot time versus range for the sample track dataset.
+"""
 
 from pathlib import Path
 

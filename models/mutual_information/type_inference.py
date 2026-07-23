@@ -2,12 +2,12 @@
 Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
 Author: Richard Bartlewitz
 Creation: July 2026
-Purpose: Dataset variable-type inference helpers.
+Purpose: Dataset variable-type inference helpers for mutual information.
 """
 
 import numpy as np
 
-from utils.missing_values import _is_missing
+from models.mutual_information.missing_values import _is_missing
 
 
 def _infer_discrete(column: np.ndarray) -> bool:

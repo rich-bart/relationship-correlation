@@ -2,7 +2,7 @@
 Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
 Author: Richard Bartlewitz
 Creation: July 2026
-Purpose: Continuous-variable discretization helpers.
+Purpose: Continuous-variable discretization helpers for mutual information.
 """
 
 from collections.abc import Sequence

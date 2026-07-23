@@ -165,7 +165,7 @@ Analyze every column:
 ```python
 import pandas as pd
 
-from mutual_information import mutual_information_matrix
+from models.mutual_information import mutual_information_matrix
 
 data = pd.read_csv("datasets/sample_dataset.csv")
 matrix = mutual_information_matrix(data, normalize=True)
@@ -175,7 +175,7 @@ print(matrix)
 Analyze two individual variables:
 
 ```python
-from mutual_information import mutual_information
+from models.mutual_information import mutual_information
 
 score = mutual_information(
     [0, 0, 1, 1],
@@ -194,24 +194,28 @@ mutual-information/
 ├── datasets/
 │   ├── sample_dataset.csv
 │   └── sample_track_data.csv
-├── mutual_information.py
+├── models/
+│   ├── __init__.py
+│   ├── maximal_information_coefficient/
+│   │   └── __init__.py
+│   └── mutual_information/
+│       ├── __init__.py
+│       ├── calculator.py
+│       ├── discretization.py
+│       ├── encoding.py
+│       ├── information_theory.py
+│       ├── missing_values.py
+│       └── type_inference.py
 ├── pyproject.toml
 ├── README.md
 ├── plotter.py
-├── runner.py
-└── utils/
-    ├── __init__.py
-    ├── discretization.py
-    ├── encoding.py
-    ├── information_theory.py
-    ├── missing_values.py
-    └── type_inference.py
+└── runner.py
 ```
 
 - `config.yaml`: user-editable analysis settings
 - `runner.py`: loads the configuration and runs the analysis
 - `plotter.py`: plots time versus range for the sample track data
-- `mutual_information.py`: public calculation functions
-- `utils/`: internal calculation helpers
+- `models/mutual_information/`: mutual-information API and private helpers
+- `models/maximal_information_coefficient/`: reserved for the future MIC model
 - `datasets/sample_dataset.csv`: example input dataset
 - `datasets/sample_track_data.csv`: example three-track position dataset

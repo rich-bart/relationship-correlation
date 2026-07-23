@@ -2,7 +2,7 @@
 Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
 Author: Richard Bartlewitz
 Creation: July 2026
-Purpose: Categorical encoding helpers.
+Purpose: Categorical encoding helpers for mutual information.
 """
 
 from typing import Any

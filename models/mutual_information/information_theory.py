@@ -7,7 +7,7 @@ Purpose: Entropy and discrete mutual-information calculations.
 
 import numpy as np
 
-from utils.encoding import _factorize
+from models.mutual_information.encoding import _factorize
 
 
 def _entropy(labels: np.ndarray, base: float) -> float:

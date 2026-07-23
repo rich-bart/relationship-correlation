@@ -12,7 +12,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from mutual_information import mutual_information_matrix
+from models.mutual_information import mutual_information_matrix
 
 
 CONFIG_PATH = Path(__file__).with_name("config.yaml")

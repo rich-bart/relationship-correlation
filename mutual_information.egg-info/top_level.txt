@@ -1,2 +1,0 @@
-mutual_information
-utils
