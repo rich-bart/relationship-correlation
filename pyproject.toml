@@ -9,8 +9,9 @@ description = "Compute mutual information between all variables in a dataset."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "numpy>=1.22",
-    "pandas>=1.4",
+    "matplotlib>=3.5",
+    "numpy>=1.23.5,<3",
+    "pandas>=2.0",
     "PyYAML>=6.0",
 ]
 

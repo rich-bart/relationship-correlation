@@ -1,3 +1,4 @@
+README.md
 mutual_information.py
 pyproject.toml
 mutual_information.egg-info/PKG-INFO

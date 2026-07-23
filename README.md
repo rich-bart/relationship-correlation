@@ -113,6 +113,17 @@ python runner.py
 The included sample configuration analyzes `sample_dataset.csv`, which has
 1,000 rows and eight columns named `col1` through `col8`.
 
+## Plotting the track dataset
+
+The included track dataset can be visualized with:
+
+```powershell
+python plotter.py
+```
+
+This opens a scatter plot of `TIME` versus `RANGE`, with a different color and
+legend entry for each `TRACK_ID`.
+
 ## Output
 
 The runner prints a symmetric matrix with one row and column for every
@@ -181,8 +192,10 @@ mutual-information/
 ├── mutual_information.py
 ├── pyproject.toml
 ├── README.md
+├── plotter.py
 ├── runner.py
 ├── sample_dataset.csv
+├── sample_track_data.csv
 └── utils/
     ├── __init__.py
     └── mutual_information_utils.py
@@ -190,6 +203,8 @@ mutual-information/
 
 - `config.yaml`: user-editable analysis settings
 - `runner.py`: loads the configuration and runs the analysis
+- `plotter.py`: plots time versus range for the sample track data
 - `mutual_information.py`: public calculation functions
 - `utils/`: internal calculation helpers
 - `sample_dataset.csv`: example input dataset
+- `sample_track_data.csv`: example three-track position dataset
