@@ -1,7 +1,7 @@
 # Mutual-information analysis configuration
 
 # CSV file to analyze. Relative paths are resolved from this YAML file.
-input_csv: datasets/sample_dataset.csv
+input_csv: datasets/sample_track_data.csv
 
 # "auto" infers column types. Alternatives:
 #   true                         - every column is discrete
@@ -26,6 +26,9 @@ base: 2.0
 
 # Decimal places displayed in the terminal.
 round_digits: 3
+
+# Display the terminal matrix with heatmap-style colors.
+color_output: true
 
 # Set to a filename such as mi_results.csv to save the output.
 # Keep this null to only display the matrix.

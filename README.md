@@ -48,6 +48,7 @@ normalize: true
 missing: pairwise
 base: 2.0
 round_digits: 3
+color_output: true
 output_csv: null
 ```
 
@@ -62,6 +63,7 @@ output_csv: null
 | `missing` | Selects the missing-data policy: `pairwise`, `listwise`, or `raise`. |
 | `base` | Logarithm base. Use `2.0` to report non-normalized mutual information in bits. |
 | `round_digits` | Number of decimal places printed in the terminal. |
+| `color_output` | Set to `true` for a colored terminal matrix or `false` for plain text. |
 | `output_csv` | Output filename for the matrix, or `null` to only print it. |
 
 The `discrete` setting accepts:
