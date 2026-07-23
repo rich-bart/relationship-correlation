@@ -1,0 +1,32 @@
+# Mutual-information analysis configuration
+
+# CSV file to analyze. Relative paths are resolved from this YAML file.
+input_csv: sample_dataset.csv
+
+# "auto" infers column types. Alternatives:
+#   true                         - every column is discrete
+#   false                        - every column is continuous
+#   [col5, col6, col8]           - named discrete columns
+#   [false, false, true, ...]    - one boolean for each column
+discrete: auto
+
+# Histogram rule for continuous variables. This can be "auto", "fd",
+# "sturges", another NumPy histogram rule, an integer, or a list of edges.
+bins: auto
+
+# false returns MI in bits. true uses sqrt normalization.
+# The strings "sqrt", "min", and "max" are also supported.
+normalize: true
+
+# Missing-data policy: pairwise, listwise, or raise
+missing: pairwise
+
+# Logarithm base. A value of 2 reports non-normalized MI in bits.
+base: 2.0
+
+# Decimal places displayed in the terminal.
+round_digits: 3
+
+# Set to a filename such as mi_results.csv to save the output.
+# Keep this null to only display the matrix.
+output_csv: null
