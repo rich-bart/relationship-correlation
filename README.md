@@ -200,7 +200,7 @@ relationship-correlation/
 │   │   └── __init__.py
 │   └── mutual_information/
 │       ├── __init__.py
-│       ├── calculator.py
+│       ├── mutual_information.py
 │       ├── discretization.py
 │       ├── encoding.py
 │       ├── information_theory.py

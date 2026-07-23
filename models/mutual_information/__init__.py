@@ -1,6 +1,6 @@
 """Public interface for the mutual-information model."""
 
-from models.mutual_information.calculator import (
+from models.mutual_information.mutual_information import (
     mutual_information,
     mutual_information_matrix,
 )
