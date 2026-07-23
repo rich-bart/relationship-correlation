@@ -15,12 +15,10 @@ from typing import Any, Literal
 
 import numpy as np
 
-from utils.mutual_information_utils import (
-    _discrete_mi,
-    _discretize,
-    _infer_discrete,
-    _is_missing,
-)
+from utils.discretization import _discretize
+from utils.information_theory import _discrete_mi
+from utils.missing_values import _is_missing
+from utils.type_inference import _infer_discrete
 
 __all__ = ["mutual_information", "mutual_information_matrix"]
 

@@ -201,7 +201,11 @@ mutual-information/
 ├── runner.py
 └── utils/
     ├── __init__.py
-    └── mutual_information_utils.py
+    ├── discretization.py
+    ├── encoding.py
+    ├── information_theory.py
+    ├── missing_values.py
+    └── type_inference.py
 ```
 
 - `config.yaml`: user-editable analysis settings
