@@ -41,7 +41,7 @@ python -m pip install -e ".[dev]"
 Edit `config.yaml` before running the analysis:
 
 ```yaml
-input_csv: sample_dataset.csv
+input_csv: datasets/sample_dataset.csv
 discrete: auto
 bins: auto
 normalize: true
@@ -110,8 +110,8 @@ After editing `config.yaml`, run:
 python runner.py
 ```
 
-The included sample configuration analyzes `sample_dataset.csv`, which has
-1,000 rows and eight columns named `col1` through `col8`.
+The included sample configuration analyzes `datasets/sample_dataset.csv`,
+which has 1,000 rows and eight columns named `col1` through `col8`.
 
 ## Plotting the track dataset
 
@@ -165,7 +165,7 @@ import pandas as pd
 
 from mutual_information import mutual_information_matrix
 
-data = pd.read_csv("sample_dataset.csv")
+data = pd.read_csv("datasets/sample_dataset.csv")
 matrix = mutual_information_matrix(data, normalize=True)
 print(matrix)
 ```
@@ -189,13 +189,14 @@ print(score)
 ```text
 mutual-information/
 ├── config.yaml
+├── datasets/
+│   ├── sample_dataset.csv
+│   └── sample_track_data.csv
 ├── mutual_information.py
 ├── pyproject.toml
 ├── README.md
 ├── plotter.py
 ├── runner.py
-├── sample_dataset.csv
-├── sample_track_data.csv
 └── utils/
     ├── __init__.py
     └── mutual_information_utils.py
@@ -206,5 +207,5 @@ mutual-information/
 - `plotter.py`: plots time versus range for the sample track data
 - `mutual_information.py`: public calculation functions
 - `utils/`: internal calculation helpers
-- `sample_dataset.csv`: example input dataset
-- `sample_track_data.csv`: example three-track position dataset
+- `datasets/sample_dataset.csv`: example input dataset
+- `datasets/sample_track_data.csv`: example three-track position dataset

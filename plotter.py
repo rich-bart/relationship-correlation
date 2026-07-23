@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-DATA_FILE = Path(__file__).with_name("sample_track_data.csv")
+DATA_FILE = Path(__file__).parent / "datasets" / "sample_track_data.csv"
 X_LABEL = "TIME"
 Y_LABEL = "RANGE"
 GROUP_BY = "TRACK_ID"

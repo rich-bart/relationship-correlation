@@ -1,7 +1,7 @@
 # Mutual-information analysis configuration
 
 # CSV file to analyze. Relative paths are resolved from this YAML file.
-input_csv: sample_dataset.csv
+input_csv: datasets/sample_dataset.csv
 
 # "auto" infers column types. Alternatives:
 #   true                         - every column is discrete
