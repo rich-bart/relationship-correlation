@@ -1,4 +1,8 @@
-"""Plot time versus range for the sample track dataset."""
+"""
+Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
+Author: Richard Bartlewitz
+Creation: July 2026
+Plot time versus range for the sample track dataset."""
 
 from pathlib import Path
 
@@ -7,23 +11,26 @@ import pandas as pd
 
 
 DATA_FILE = Path(__file__).with_name("sample_track_data.csv")
+X_LABEL = "TIME"
+Y_LABEL = "RANGE"
+GROUP_BY = "TRACK_ID"
 
 
 def main() -> None:
     data = pd.read_csv(DATA_FILE)
 
-    for track_id, track in data.groupby("TRACK_ID"):
+    for track_id, track in data.groupby(GROUP_BY):
         plt.scatter(
-            track["TIME"],
-            track["RANGE"],
+            track[X_LABEL],
+            track[Y_LABEL],
             s=14,
             alpha=0.75,
             label=f"Track {track_id}",
         )
 
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Range")
-    plt.title("Time vs. Range by Track")
+    plt.xlabel(f"{X_LABEL}")
+    plt.ylabel(f"{Y_LABEL}")
+    plt.title(f"{X_LABEL} vs. {Y_LABEL} by {GROUP_BY}")
     plt.legend()
     plt.grid(alpha=0.25)
     plt.tight_layout()
