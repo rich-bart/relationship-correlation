@@ -19,7 +19,7 @@ edited.
 Open PowerShell in the project directory:
 
 ```powershell
-cd C:\Users\rbart\Documents\Coding_Projects\mutual-information
+cd C:\Users\rbart\Documents\Coding_Projects\relationship-correlation
 ```
 
 Creating an isolated environment is recommended:
@@ -189,7 +189,7 @@ print(score)
 ## Project layout
 
 ```text
-mutual-information/
+relationship-correlation/
 ├── config.yaml
 ├── datasets/
 │   ├── sample_dataset.csv
