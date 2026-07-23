@@ -1,4 +1,9 @@
-"""Private helpers used by :mod:`mutual_information`."""
+"""
+Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
+Author: Richard Bartlewitz
+Creation: July 2026
+Private helpers used by :mod:`mutual_information`.
+"""
 
 from __future__ import annotations
 
