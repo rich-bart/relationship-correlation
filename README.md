@@ -197,7 +197,12 @@ relationship-correlation/
 ├── models/
 │   ├── __init__.py
 │   ├── maximal_information_coefficient/
-│   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   ├── characteristic_matrix.py
+│   │   ├── grid_search.py
+│   │   ├── maximal_information_coefficient.py
+│   │   ├── normalization.py
+│   │   └── validation.py
 │   └── mutual_information/
 │       ├── __init__.py
 │       ├── mutual_information.py
@@ -216,6 +221,7 @@ relationship-correlation/
 - `runner.py`: loads the configuration and runs the analysis
 - `plotter.py`: plots time versus range for the sample track data
 - `models/mutual_information/`: mutual-information API and private helpers
-- `models/maximal_information_coefficient/`: reserved for the future MIC model
+- `models/maximal_information_coefficient/`: scaffold for the future MIC model;
+  it does not contain an algorithm yet
 - `datasets/sample_dataset.csv`: example input dataset
 - `datasets/sample_track_data.csv`: example three-track position dataset
