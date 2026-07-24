@@ -1,4 +1,9 @@
-"""Compare this project's MI results with scikit-learn."""
+"""
+Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
+Author: Richard Bartlewitz
+Creation: July 2026
+Purpose: Compare this project's MI results with scikit-learn.
+"""
 
 import numpy as np
 import pandas as pd
