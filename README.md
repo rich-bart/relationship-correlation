@@ -148,7 +148,10 @@ legend entry for each `TRACK_ID`.
 ## Output
 
 The runner prints a symmetric matrix with one row and column for every
-variable:
+variable. It also prints a ranked list containing every unique feature pair
+and its coefficient, from strongest to weakest. Diagonal self-correlations and
+duplicate reversed pairs are omitted. The same table is automatically saved as
+`feature_pairs.csv` beside `config.yaml`:
 
 ```text
        col1   col2   col3   col4   col5   col6   col7   col8

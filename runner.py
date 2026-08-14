@@ -101,6 +101,40 @@ def print_matrix(matrix: pd.DataFrame, digits: int, color_output: bool) -> None:
     Console().print(table)
 
 
+def print_feature_pairs(
+    matrix: pd.DataFrame, digits: int, color_output: bool
+) -> pd.DataFrame:
+    """Print each unique feature pair ranked by its coefficient."""
+    pairs = [
+        (str(matrix.index[i]), str(matrix.columns[j]), float(matrix.iloc[i, j]))
+        for i in range(len(matrix.index))
+        for j in range(i + 1, len(matrix.columns))
+        if pd.notna(matrix.iloc[i, j])
+    ]
+    pairs.sort(key=lambda pair: pair[2], reverse=True)
+    output = pd.DataFrame(
+        pairs, columns=["Feature 1", "Feature 2", "Coefficient"]
+    )
+
+    if not color_output:
+        print("\nRanked feature pairs:")
+        print(output.round({"Coefficient": digits}).to_string(index=False))
+        return output
+
+    table = Table(
+        title="Ranked feature pairs",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("Feature 1", style="cyan")
+    table.add_column("Feature 2", style="cyan")
+    table.add_column("Coefficient", justify="right")
+    for feature_1, feature_2, coefficient in pairs:
+        table.add_row(feature_1, feature_2, f"{coefficient:.{digits}f}")
+    Console().print(table)
+    return output
+
+
 def show_spectrogram(
     matrix: pd.DataFrame, title: str, fallback_path: Path
 ) -> None:
@@ -167,6 +201,12 @@ def main() -> None:
     print(f"Analysis: {analysis_name}")
     print(f"Dataset: {input_csv} ({len(data)} rows, {len(data.columns)} columns)")
     print_matrix(result, config["round_digits"], config["color_output"])
+    feature_pairs = print_feature_pairs(
+        result, config["round_digits"], config["color_output"]
+    )
+    feature_pairs_path = config_directory / "feature_pairs.csv"
+    feature_pairs.to_csv(feature_pairs_path, index=False)
+    print(f"\nSaved feature pairs to: {feature_pairs_path.resolve()}")
 
     if config["output_csv"] is not None:
         output_path = config_directory / Path(config["output_csv"])
