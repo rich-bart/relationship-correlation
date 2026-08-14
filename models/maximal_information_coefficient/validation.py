@@ -13,6 +13,8 @@ from typing import Any, Literal
 import numpy as np
 
 from models.mutual_information.missing_values import _is_missing
+from models.mutual_information.encoding import _factorize
+from models.mutual_information.type_inference import _infer_discrete
 
 
 def _validate_parameters(alpha: float, max_bins: int | None) -> None:
@@ -26,6 +28,8 @@ def _prepare_pair(
     x: Sequence[Any],
     y: Sequence[Any],
     missing: Literal["drop", "raise"],
+    discrete_x: Literal["auto"] | bool,
+    discrete_y: Literal["auto"] | bool,
 ) -> tuple[np.ndarray, np.ndarray]:
     if missing not in {"drop", "raise"}:
         raise ValueError("missing must be 'drop' or 'raise'")
@@ -40,7 +44,21 @@ def _prepare_pair(
     )
     if missing == "raise" and not valid.all():
         raise ValueError("x or y contains missing values")
+    xa, ya = xa[valid], ya[valid]
+    if discrete_x == "auto":
+        discrete_x = _infer_discrete(xa)
+    if discrete_y == "auto":
+        discrete_y = _infer_discrete(ya)
+    if not isinstance(discrete_x, (bool, np.bool_)) or not isinstance(
+        discrete_y, (bool, np.bool_)
+    ):
+        raise ValueError("discrete_x and discrete_y must be true, false, or 'auto'")
     try:
-        return xa[valid].astype(float), ya[valid].astype(float)
+        prepared_x = _factorize(xa).astype(float) if discrete_x else xa.astype(float)
+        prepared_y = _factorize(ya).astype(float) if discrete_y else ya.astype(float)
+        return prepared_x, prepared_y
     except (TypeError, ValueError) as error:
-        raise ValueError("MIC inputs must contain numeric values") from error
+        raise ValueError(
+            "continuous MIC inputs must contain numeric values; mark categorical "
+            "inputs as discrete or use 'auto'"
+        ) from error

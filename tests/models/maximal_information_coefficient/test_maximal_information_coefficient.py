@@ -52,6 +52,27 @@ def test_constant_variable_has_zero_score() -> None:
     assert maximal_information_coefficient([1] * 20, range(20)) == 0.0
 
 
+def test_text_categories_are_automatically_encoded() -> None:
+    x = ["fire", "fire", "water", "water", "grass", "grass"] * 20
+    y = ["hot", "hot", "wet", "wet", "green", "green"] * 20
+
+    assert maximal_information_coefficient(x, y) == pytest.approx(1.0)
+
+
+def test_mixed_dataframe_supports_numeric_and_text_columns() -> None:
+    frame = pd.DataFrame(
+        {
+            "category": ["a", "a", "b", "b"] * 30,
+            "value": [0.0, 0.1, 1.0, 1.1] * 30,
+        }
+    )
+
+    result = maximal_information_coefficient_matrix(frame, discrete="auto")
+
+    assert result.shape == (2, 2)
+    assert np.isfinite(result.to_numpy()).all()
+
+
 def test_missing_values_can_be_dropped_or_rejected() -> None:
     x = [0, 1, 2, None, 4]
     y = [0, 1, 2, 3, 4]

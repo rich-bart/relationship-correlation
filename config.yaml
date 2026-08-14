@@ -1,10 +1,10 @@
 # Relationship analysis configuration
 
 # Analysis to run: mic or mutual_information
-analysis: mic
+analysis: mutual_information
 
 # CSV file to analyze. Relative paths are resolved from this YAML file.
-input_csv: datasets/sample_track_data.csv
+input_csv: datasets/pokemon/pokemon_complete_2025.csv
 
 # "auto" infers column types. Alternatives:
 #   true                         - every column is discrete

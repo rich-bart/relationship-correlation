@@ -7,9 +7,9 @@ Purpose: Runner for mutual information and MIC analysis
 
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import yaml
-import matplotlib.pyplot as plt
 from rich.console import Console
 from rich.table import Table
 
@@ -101,21 +101,38 @@ def print_matrix(matrix: pd.DataFrame, digits: int, color_output: bool) -> None:
     Console().print(table)
 
 
-def show_spectrogram(matrix: pd.DataFrame, title: str) -> None:
-    """Display the result matrix as a color spectrogram."""
+def show_spectrogram(
+    matrix: pd.DataFrame, title: str, fallback_path: Path
+) -> None:
+    """Display the result matrix, saving it if no GUI backend is available."""
     size = max(7.0, min(16.0, 0.65 * len(matrix.columns) + 3.0))
-    figure, axis = plt.subplots(figsize=(size, size))
+    try:
+        figure, axis = plt.subplots(figsize=(size, size))
+    except Exception as error:
+        plt.switch_backend("Agg")
+        figure, axis = plt.subplots(figsize=(size, size))
+        display_error = error
+    else:
+        display_error = None
     image = axis.imshow(matrix.to_numpy(dtype=float), cmap="viridis", aspect="auto")
     positions = range(len(matrix.columns))
     axis.set_xticks(positions, [str(column) for column in matrix.columns])
     axis.set_yticks(positions, [str(index) for index in matrix.index])
-    axis.tick_params(axis="x", labelrotation=45)
+    axis.tick_params(axis="x", labelrotation=90)
     axis.set_xlabel("Variable")
     axis.set_ylabel("Variable")
     axis.set_title(f"{title} spectrogram")
     figure.colorbar(image, ax=axis, label="Coefficient")
     figure.tight_layout()
-    plt.show()
+    if display_error is None:
+        plt.show()
+    else:
+        figure.savefig(fallback_path, dpi=150)
+        plt.close(figure)
+        print(
+            "\nA graphical window was unavailable; saved the spectrogram to: "
+            f"{fallback_path.resolve()}"
+        )
 
 
 def main() -> None:
@@ -133,6 +150,7 @@ def main() -> None:
             alpha=config["alpha"],
             max_bins=config["max_bins"],
             missing=config["missing"],
+            discrete=config["discrete"],
         )
         analysis_name = "Maximal information coefficient"
     else:
@@ -156,7 +174,11 @@ def main() -> None:
         print(f"\nSaved results to: {output_path.resolve()}")
 
     if config["spectrogram"]:
-        show_spectrogram(result, analysis_name)
+        show_spectrogram(
+            result,
+            analysis_name,
+            config_directory / "spectrogram.png",
+        )
 
 
 if __name__ == "__main__":

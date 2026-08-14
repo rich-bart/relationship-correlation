@@ -7,7 +7,7 @@ Purpose: Public maximal-information-coefficient APIs.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Any, Literal
 
 import numpy as np
@@ -21,6 +21,7 @@ from models.maximal_information_coefficient.validation import (
     _validate_parameters,
 )
 from models.mutual_information.missing_values import _is_missing
+from models.mutual_information.type_inference import _infer_discrete
 
 __all__ = [
     "maximal_information_coefficient",
@@ -36,6 +37,8 @@ def maximal_information_coefficient(
     alpha: float = 0.6,
     max_bins: int | None = None,
     missing: Literal["drop", "raise"] = "drop",
+    discrete_x: Literal["auto"] | bool = "auto",
+    discrete_y: Literal["auto"] | bool = "auto",
 ) -> float:
     """Estimate the maximal information coefficient between two variables.
 
@@ -45,7 +48,7 @@ def maximal_information_coefficient(
     ``max_bins`` can cap the search budget for large datasets.
     """
     _validate_parameters(alpha, max_bins)
-    xa, ya = _prepare_pair(x, y, missing)
+    xa, ya = _prepare_pair(x, y, missing, discrete_x, discrete_y)
     if len(xa) < 2:
         return float("nan")
     if np.all(xa == xa[0]) or np.all(ya == ya[0]):
@@ -63,6 +66,7 @@ def mic_matrix(
     alpha: float = 0.6,
     max_bins: int | None = None,
     missing: Literal["pairwise", "listwise", "raise"] = "pairwise",
+    discrete: Literal["auto"] | bool | Iterable[Any] | Sequence[bool] = "auto",
 ):
     """Compute MIC for every pair of columns in a two-dimensional dataset."""
     _validate_parameters(alpha, max_bins)
@@ -80,6 +84,25 @@ def mic_matrix(
         values = values[~missing_mask.any(axis=1)]
 
     columns = values.shape[1]
+    if isinstance(discrete, str) and discrete == "auto":
+        kinds = [_infer_discrete(values[:, i]) for i in range(columns)]
+    elif isinstance(discrete, (bool, np.bool_)):
+        kinds = [bool(discrete)] * columns
+    else:
+        supplied = list(discrete)
+        if is_dataframe and not all(
+            isinstance(item, (bool, np.bool_)) for item in supplied
+        ):
+            selected = set(supplied)
+            unknown = selected.difference(names)
+            if unknown:
+                raise ValueError(f"unknown columns in discrete: {sorted(unknown)!r}")
+            kinds = [name in selected for name in names]
+        else:
+            if len(supplied) != columns:
+                raise ValueError("discrete mask must have one item per column")
+            kinds = [bool(item) for item in supplied]
+
     result = np.empty((columns, columns), dtype=float)
     pair_missing = "raise" if missing == "raise" else "drop"
     for i in range(columns):
@@ -87,6 +110,7 @@ def mic_matrix(
             score = maximal_information_coefficient(
                 values[:, i], values[:, j], alpha=alpha,
                 max_bins=max_bins, missing=pair_missing,
+                discrete_x=kinds[i], discrete_y=kinds[j],
             )
             result[i, j] = result[j, i] = score
     if is_dataframe:

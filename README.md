@@ -126,9 +126,10 @@ After editing `config.yaml`, run:
 python runner.py
 ```
 
-With `analysis: mic`, all selected CSV columns must be numeric. Settings such
-as `discrete`, `bins`, `normalize`, and `base` apply only when `analysis` is
-`mutual_information`.
+With `analysis: mic`, `discrete: auto` detects text and categorical columns and
+encodes their values as discrete category labels. The named-column and boolean
+mask forms of `discrete` work for MIC as well. Settings such as `bins`,
+`normalize`, and `base` apply only when `analysis` is `mutual_information`.
 
 The included sample configuration analyzes `datasets/sample_dataset.csv`,
 which has 1,000 rows and eight columns named `col1` through `col8`.
@@ -220,6 +221,11 @@ MIC values range from 0 to 1. The optional `alpha` argument controls the grid
 budget (default `0.6`), while `max_bins` can cap that budget for large inputs.
 Missing values may be dropped or rejected for a pair; matrix calculations also
 support pairwise and listwise deletion.
+
+For categorical MIC inputs, category values are converted to integer labels
+before grid searching; the original strings do not need to be numeric. If a
+graphical spectrogram window is unavailable, the runner saves
+`spectrogram.png` beside `config.yaml` instead.
 
 ## Project layout
 
