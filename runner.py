@@ -35,6 +35,7 @@ EXPECTED_SETTINGS = {
     "max_bins",
     "spectrogram",
     "exclude_columns",
+    "target_column",
 }
 
 
@@ -67,6 +68,10 @@ def load_config() -> dict:
         isinstance(column, str) for column in config["exclude_columns"]
     ):
         raise ValueError("exclude_columns must be a list of column names")
+    if config["target_column"] is not None and not isinstance(
+        config["target_column"], str
+    ):
+        raise ValueError("target_column must be a column name or null")
     return config
 
 
@@ -140,6 +145,42 @@ def print_feature_pairs(
     return output
 
 
+def target_feature_table(
+    matrix: pd.DataFrame, target_column: str
+) -> pd.DataFrame:
+    """Return all non-target features ranked by association with the target."""
+    rows = [
+        (str(feature), target_column, float(matrix.loc[feature, target_column]))
+        for feature in matrix.index
+        if feature != target_column and pd.notna(matrix.loc[feature, target_column])
+    ]
+    rows.sort(key=lambda row: row[2], reverse=True)
+    return pd.DataFrame(rows, columns=["Feature", "Target", "Coefficient"])
+
+
+def print_target_features(
+    table_data: pd.DataFrame, digits: int, color_output: bool
+) -> None:
+    """Print a target-focused feature ranking."""
+    if not color_output:
+        print("\nFeatures ranked against target:")
+        print(table_data.round({"Coefficient": digits}).to_string(index=False))
+        return
+
+    table = Table(
+        title="Features ranked against target",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Feature", style="cyan")
+    table.add_column("Target", style="magenta")
+    table.add_column("Coefficient", justify="right")
+    for row in table_data.itertuples(index=False, name=None):
+        feature, target, coefficient = row
+        table.add_row(feature, target, f"{coefficient:.{digits}f}")
+    Console().print(table)
+
+
 def show_spectrogram(
     matrix: pd.DataFrame, title: str, fallback_path: Path
 ) -> None:
@@ -194,6 +235,13 @@ def main() -> None:
         data = data.drop(columns=excluded)
     if data.shape[1] < 2:
         raise ValueError("at least two columns must remain after exclusions")
+    target_column = config["target_column"]
+    if target_column is not None and target_column not in data.columns:
+        if target_column in excluded:
+            raise ValueError(
+                f"target_column {target_column!r} cannot also be excluded"
+            )
+        raise ValueError(f"target_column was not found in dataset: {target_column!r}")
     if config["analysis"] == "mic":
         result = maximal_information_coefficient_matrix(
             data,
@@ -216,7 +264,18 @@ def main() -> None:
 
     print(f"Analysis: {analysis_name}")
     print(f"Dataset: {input_csv} ({len(data)} rows, {len(data.columns)} columns)")
+    if target_column is not None:
+        print(f"Target column: {target_column}")
     print_matrix(result, config["round_digits"], config["color_output"])
+    if target_column is not None:
+        target_features = target_feature_table(result, target_column)
+        print_target_features(
+            target_features,
+            config["round_digits"],
+            config["color_output"],
+        )
+        target_features_path = config_directory / "target_features.csv"
+        target_features.to_csv(target_features_path, index=False)
     feature_pairs = print_feature_pairs(
         result, config["round_digits"], config["color_output"]
     )
@@ -230,6 +289,8 @@ def main() -> None:
             f"{', '.join(skipped_exclusions)}"
         )
     print(f"\nSaved feature pairs to: {feature_pairs_path.resolve()}")
+    if target_column is not None:
+        print(f"Saved target features to: {target_features_path.resolve()}")
 
     if config["output_csv"] is not None:
         output_path = config_directory / Path(config["output_csv"])
@@ -242,6 +303,7 @@ def main() -> None:
             analysis_name,
             config_directory / "spectrogram.png",
         )
+
 
 if __name__ == "__main__":
     main()

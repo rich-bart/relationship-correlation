@@ -49,6 +49,7 @@ Edit `config.yaml` before running the analysis:
 ```yaml
 input_csv: datasets/sample_dataset.csv
 analysis: mic
+target_column: null
 exclude_columns: []
 discrete: auto
 bins: auto
@@ -69,6 +70,7 @@ max_bins: null
 | --- | --- |
 | `analysis` | Selects `mic` or `mutual_information`. |
 | `input_csv` | Path to the input CSV file. Relative paths start from the directory containing `config.yaml`. |
+| `target_column` | Optional outcome column. When set, features are ranked against it and saved to `target_features.csv`. Use `null` to disable. |
 | `exclude_columns` | Column names to remove before calculating the relationship matrix. Names absent from the dataset are skipped. Use `[]` to keep every column. |
 | `discrete` | Controls which variables are treated as discrete. See the options below. |
 | `bins` | Histogram rule, bin count, or bin-edge list used for continuous variables. |
@@ -154,6 +156,10 @@ variable. It also prints a ranked list containing every unique feature pair
 and its coefficient, from strongest to weakest. Diagonal self-correlations and
 duplicate reversed pairs are omitted. The same table is automatically saved as
 `feature_pairs.csv` beside `config.yaml`:
+
+When `target_column` is set, the runner additionally prints a target-focused
+ranking and saves it as `target_features.csv`. The target itself is omitted
+from this ranking; the complete pairwise outputs are still produced.
 
 ```text
        col1   col2   col3   col4   col5   col6   col7   col8

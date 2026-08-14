@@ -6,6 +6,10 @@ analysis: mutual_information
 # CSV file to analyze. Relative paths are resolved from this YAML file.
 input_csv: datasets/pokemon/pokemon_complete_2025.csv
 
+# Optional outcome to rank every remaining feature against. Use null to disable
+# target-focused output while retaining the complete pairwise analysis.
+target_column: null
+
 # Columns to remove before calculating relationships. These fields identify
 # individual Pokemon and can create strong but analytically trivial results.
 exclude_columns:
@@ -50,7 +54,7 @@ round_digits: 3
 color_output: true
 
 # Open a graphical spectrogram of the result matrix after analysis.
-spectrogram: true
+spectrogram: false
 
 # Set to a filename such as mi_results.csv to save the output.
 # Keep this null to only display the matrix.
