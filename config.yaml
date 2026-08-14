@@ -47,6 +47,14 @@ alpha: 0.6
 # A cap can make analysis of large datasets run faster.
 max_bins: null
 
+# Number of random shuffles used to estimate each pair's p-value. Higher values
+# provide finer p-values but increase runtime. Use 0 to disable permutation tests.
+# p-value = (exceeding shuffled scores + 1) / (permutations + 1)
+permutations: 100
+
+# Makes permutation p-values reproducible across runs.
+random_seed: 42
+
 # Decimal places displayed in the terminal.
 round_digits: 3
 

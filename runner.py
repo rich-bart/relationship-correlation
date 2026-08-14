@@ -8,15 +8,21 @@ Purpose: Runner for mutual information and MIC analysis
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import yaml
 from rich.console import Console
 from rich.table import Table
 
 from models.maximal_information_coefficient import (
+    maximal_information_coefficient,
     maximal_information_coefficient_matrix,
 )
 from models.mutual_information import mutual_information_matrix
+from models.mutual_information.discretization import _discretize
+from models.mutual_information.encoding import _factorize
+from models.mutual_information.missing_values import _is_missing
+from models.mutual_information.type_inference import _infer_discrete
 
 
 CONFIG_PATH = Path(__file__).with_name("config.yaml")
@@ -36,6 +42,8 @@ EXPECTED_SETTINGS = {
     "spectrogram",
     "exclude_columns",
     "target_column",
+    "permutations",
+    "random_seed",
 }
 
 
@@ -72,6 +80,10 @@ def load_config() -> dict:
         config["target_column"], str
     ):
         raise ValueError("target_column must be a column name or null")
+    if not isinstance(config["permutations"], int) or config["permutations"] < 0:
+        raise ValueError("permutations must be a nonnegative integer")
+    if not isinstance(config["random_seed"], int):
+        raise ValueError("random_seed must be an integer")
     return config
 
 
@@ -111,10 +123,8 @@ def print_matrix(matrix: pd.DataFrame, digits: int, color_output: bool) -> None:
     Console().print(table)
 
 
-def print_feature_pairs(
-    matrix: pd.DataFrame, digits: int, color_output: bool
-) -> pd.DataFrame:
-    """Print each unique feature pair ranked by its coefficient."""
+def feature_pair_table(matrix: pd.DataFrame) -> pd.DataFrame:
+    """Return every unique feature pair ranked by its coefficient."""
     pairs = [
         (str(matrix.index[i]), str(matrix.columns[j]), float(matrix.iloc[i, j]))
         for i in range(len(matrix.index))
@@ -125,11 +135,21 @@ def print_feature_pairs(
     output = pd.DataFrame(
         pairs, columns=["Feature 1", "Feature 2", "Coefficient"]
     )
+    return output
+
+
+def print_feature_pairs(
+    output: pd.DataFrame, digits: int, color_output: bool
+) -> None:
+    """Print a ranked table of unique feature pairs."""
 
     if not color_output:
         print("\nRanked feature pairs:")
-        print(output.round({"Coefficient": digits}).to_string(index=False))
-        return output
+        print(
+            output.round({"Coefficient": digits, "P-value": digits})
+            .to_string(index=False)
+        )
+        return
 
     table = Table(
         title="Ranked feature pairs",
@@ -139,10 +159,15 @@ def print_feature_pairs(
     table.add_column("Feature 1", style="cyan")
     table.add_column("Feature 2", style="cyan")
     table.add_column("Coefficient", justify="right")
-    for feature_1, feature_2, coefficient in pairs:
-        table.add_row(feature_1, feature_2, f"{coefficient:.{digits}f}")
+    if "P-value" in output:
+        table.add_column("P-value", justify="right")
+    for row in output.itertuples(index=False, name=None):
+        feature_1, feature_2, coefficient, *statistics = row
+        cells = [feature_1, feature_2, f"{coefficient:.{digits}f}"]
+        if statistics:
+            cells.append(f"{statistics[0]:.{digits}f}")
+        table.add_row(*cells)
     Console().print(table)
-    return output
 
 
 def target_feature_table(
@@ -175,10 +200,126 @@ def print_target_features(
     table.add_column("Feature", style="cyan")
     table.add_column("Target", style="magenta")
     table.add_column("Coefficient", justify="right")
+    if "P-value" in table_data:
+        table.add_column("P-value", justify="right")
     for row in table_data.itertuples(index=False, name=None):
-        feature, target, coefficient = row
-        table.add_row(feature, target, f"{coefficient:.{digits}f}")
+        feature, target, coefficient, *statistics = row
+        cells = [feature, target, f"{coefficient:.{digits}f}"]
+        if statistics:
+            cells.append(f"{statistics[0]:.{digits}f}")
+        table.add_row(*cells)
     Console().print(table)
+
+
+def _discrete_column_map(data: pd.DataFrame, discrete) -> dict[str, bool]:
+    """Resolve the YAML discrete setting to one boolean per column."""
+    names = list(data.columns)
+    if discrete == "auto":
+        return {name: _infer_discrete(data[name].to_numpy()) for name in names}
+    if isinstance(discrete, bool):
+        return dict.fromkeys(names, discrete)
+    supplied = list(discrete)
+    if all(isinstance(item, bool) for item in supplied):
+        if len(supplied) != len(names):
+            raise ValueError("discrete mask must have one item per column")
+        return dict(zip(names, supplied))
+    selected = set(supplied)
+    return {name: name in selected for name in names}
+
+
+def add_permutation_p_values(
+    table_data: pd.DataFrame,
+    data: pd.DataFrame,
+    config: dict,
+    feature_columns: tuple[str, str],
+) -> pd.DataFrame:
+    """Add empirical permutation p-values to a pair-ranking table."""
+    count = config["permutations"]
+    if count == 0:
+        return table_data
+    rng = np.random.default_rng(config["random_seed"])
+    kinds = _discrete_column_map(data, config["discrete"])
+    p_values = []
+    for _, row in table_data.iterrows():
+        left = row[feature_columns[0]]
+        right = row[feature_columns[1]]
+        observed = row["Coefficient"]
+        x = data[left].to_numpy(dtype=object)
+        y = data[right].to_numpy(dtype=object)
+        valid = np.fromiter(
+            (not (_is_missing(a) or _is_missing(b)) for a, b in zip(x, y)),
+            dtype=bool,
+            count=len(x),
+        )
+        x, y = x[valid], y[valid]
+        if config["analysis"] == "mutual_information":
+            x_labels = (
+                _factorize(x)
+                if kinds[left]
+                else _discretize(x, config["bins"])
+            )
+            y_labels = (
+                _factorize(y)
+                if kinds[right]
+                else _discretize(y, config["bins"])
+            )
+        exceedances = 0
+        for _ in range(count):
+            if config["analysis"] == "mic":
+                shuffled = rng.permutation(y)
+                score = maximal_information_coefficient(
+                    x, shuffled,
+                    alpha=config["alpha"], max_bins=config["max_bins"],
+                    missing="raise", discrete_x=kinds[left],
+                    discrete_y=kinds[right],
+                )
+            else:
+                score = _encoded_mutual_information(
+                    x_labels,
+                    rng.permutation(y_labels),
+                    config["normalize"],
+                    config["base"],
+                )
+            exceedances += score >= observed
+        p_values.append((exceedances + 1) / (count + 1))
+    output = table_data.copy()
+    output["P-value"] = p_values
+    return output
+
+
+def _encoded_mutual_information(
+    x_labels: np.ndarray,
+    y_labels: np.ndarray,
+    normalize,
+    base: float,
+) -> float:
+    """Calculate MI quickly from pre-encoded labels during permutation tests."""
+    nx = int(x_labels.max(initial=-1)) + 1
+    ny = int(y_labels.max(initial=-1)) + 1
+    joint_ids, joint_counts = np.unique(
+        x_labels * ny + y_labels, return_counts=True
+    )
+    joint = joint_counts / len(x_labels)
+    px = np.bincount(x_labels, minlength=nx) / len(x_labels)
+    py = np.bincount(y_labels, minlength=ny) / len(y_labels)
+    joint_x = joint_ids // ny
+    joint_y = joint_ids % ny
+    log_base = np.log(base)
+    mi = float(
+        np.sum(joint * np.log(joint / (px[joint_x] * py[joint_y])))
+        / log_base
+    )
+    if not normalize:
+        return max(0.0, mi)
+    hx = float(-np.sum(px[px > 0] * np.log(px[px > 0])) / log_base)
+    hy = float(-np.sum(py[py > 0] * np.log(py[py > 0])) / log_base)
+    method = "sqrt" if normalize is True else normalize
+    denominator = {
+        "sqrt": np.sqrt(hx * hy),
+        "min": min(hx, hy),
+        "max": max(hx, hy),
+    }[method]
+    return 0.0 if denominator == 0 else min(1.0, max(0.0, mi) / denominator)
 
 
 def show_spectrogram(
@@ -266,9 +407,19 @@ def main() -> None:
     print(f"Dataset: {input_csv} ({len(data)} rows, {len(data.columns)} columns)")
     if target_column is not None:
         print(f"Target column: {target_column}")
+    permutation_data = data
+    if config["missing"] == "listwise":
+        permutation_data = data.dropna(axis=0, how="any")
+
     print_matrix(result, config["round_digits"], config["color_output"])
     if target_column is not None:
         target_features = target_feature_table(result, target_column)
+        target_features = add_permutation_p_values(
+            target_features,
+            permutation_data,
+            config,
+            ("Feature", "Target"),
+        )
         print_target_features(
             target_features,
             config["round_digits"],
@@ -276,8 +427,15 @@ def main() -> None:
         )
         target_features_path = config_directory / "target_features.csv"
         target_features.to_csv(target_features_path, index=False)
-    feature_pairs = print_feature_pairs(
-        result, config["round_digits"], config["color_output"]
+    feature_pairs = feature_pair_table(result)
+    feature_pairs = add_permutation_p_values(
+        feature_pairs,
+        permutation_data,
+        config,
+        ("Feature 1", "Feature 2"),
+    )
+    print_feature_pairs(
+        feature_pairs, config["round_digits"], config["color_output"]
     )
     feature_pairs_path = config_directory / "feature_pairs.csv"
     feature_pairs.to_csv(feature_pairs_path, index=False)

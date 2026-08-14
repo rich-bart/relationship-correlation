@@ -62,6 +62,8 @@ spectrogram: false
 output_csv: null
 alpha: 0.6
 max_bins: null
+permutations: 100
+random_seed: 42
 ```
 
 ### Settings
@@ -83,6 +85,8 @@ max_bins: null
 | `output_csv` | Output filename for the matrix, or `null` to only print it. |
 | `alpha` | MIC grid-budget exponent; the default is `0.6`. |
 | `max_bins` | Optional MIC grid-budget cap, or `null` for no cap. |
+| `permutations` | Number of label shuffles used for empirical p-values. Use `0` to disable; larger values increase runtime and p-value resolution. |
+| `random_seed` | Integer seed that makes permutation results reproducible. |
 
 The `discrete` setting accepts:
 
@@ -160,6 +164,11 @@ duplicate reversed pairs are omitted. The same table is automatically saved as
 When `target_column` is set, the runner additionally prints a target-focused
 ranking and saves it as `target_features.csv`. The target itself is omitted
 from this ranking; the complete pairwise outputs are still produced.
+
+When `permutations` is greater than zero, both ranked CSV files include an
+empirical `P-value`. For each pair, one variable is shuffled repeatedly and the
+p-value is `(null scores >= observed score + 1) / (permutations + 1)`. These are
+raw p-values; multiple-comparison correction is not yet applied.
 
 ```text
        col1   col2   col3   col4   col5   col6   col7   col8
