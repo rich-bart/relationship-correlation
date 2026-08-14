@@ -6,6 +6,15 @@ analysis: mutual_information
 # CSV file to analyze. Relative paths are resolved from this YAML file.
 input_csv: datasets/pokemon/pokemon_complete_2025.csv
 
+# Columns to remove before calculating relationships. These fields identify
+# individual Pokemon and can create strong but analytically trivial results.
+exclude_columns:
+  - pokedex_id
+  - name
+  - description
+  - sprite_url
+  - askjdh
+
 # "auto" infers column types. Alternatives:
 #   true                         - every column is discrete
 #   false                        - every column is continuous

@@ -34,6 +34,7 @@ EXPECTED_SETTINGS = {
     "alpha",
     "max_bins",
     "spectrogram",
+    "exclude_columns",
 }
 
 
@@ -62,6 +63,10 @@ def load_config() -> dict:
         raise ValueError("analysis must be 'mic' or 'mutual_information'")
     if not isinstance(config["spectrogram"], bool):
         raise ValueError("spectrogram must be true or false")
+    if not isinstance(config["exclude_columns"], list) or not all(
+        isinstance(column, str) for column in config["exclude_columns"]
+    ):
+        raise ValueError("exclude_columns must be a list of column names")
     return config
 
 
@@ -178,6 +183,17 @@ def main() -> None:
         raise FileNotFoundError(f"Input dataset was not found: {input_csv.resolve()}")
 
     data = pd.read_csv(input_csv)
+    configured_exclusions = config["exclude_columns"]
+    excluded = [
+        column for column in configured_exclusions if column in data.columns
+    ]
+    skipped_exclusions = [
+        column for column in configured_exclusions if column not in data.columns
+    ]
+    if excluded:
+        data = data.drop(columns=excluded)
+    if data.shape[1] < 2:
+        raise ValueError("at least two columns must remain after exclusions")
     if config["analysis"] == "mic":
         result = maximal_information_coefficient_matrix(
             data,
@@ -206,6 +222,13 @@ def main() -> None:
     )
     feature_pairs_path = config_directory / "feature_pairs.csv"
     feature_pairs.to_csv(feature_pairs_path, index=False)
+    if excluded:
+        print(f"\nExcluded columns: {', '.join(excluded)}")
+    if skipped_exclusions:
+        print(
+            "Skipped exclusions not found in dataset: "
+            f"{', '.join(skipped_exclusions)}"
+        )
     print(f"\nSaved feature pairs to: {feature_pairs_path.resolve()}")
 
     if config["output_csv"] is not None:
@@ -219,7 +242,6 @@ def main() -> None:
             analysis_name,
             config_directory / "spectrogram.png",
         )
-
 
 if __name__ == "__main__":
     main()

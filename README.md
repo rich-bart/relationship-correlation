@@ -49,6 +49,7 @@ Edit `config.yaml` before running the analysis:
 ```yaml
 input_csv: datasets/sample_dataset.csv
 analysis: mic
+exclude_columns: []
 discrete: auto
 bins: auto
 normalize: true
@@ -68,6 +69,7 @@ max_bins: null
 | --- | --- |
 | `analysis` | Selects `mic` or `mutual_information`. |
 | `input_csv` | Path to the input CSV file. Relative paths start from the directory containing `config.yaml`. |
+| `exclude_columns` | Column names to remove before calculating the relationship matrix. Names absent from the dataset are skipped. Use `[]` to keep every column. |
 | `discrete` | Controls which variables are treated as discrete. See the options below. |
 | `bins` | Histogram rule, bin count, or bin-edge list used for continuous variables. |
 | `normalize` | Controls whether and how the mutual information is normalized. |
