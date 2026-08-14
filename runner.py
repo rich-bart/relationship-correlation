@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
+import matplotlib.pyplot as plt
 from rich.console import Console
 from rich.table import Table
 
@@ -32,6 +33,7 @@ EXPECTED_SETTINGS = {
     "output_csv",
     "alpha",
     "max_bins",
+    "spectrogram",
 }
 
 
@@ -58,6 +60,8 @@ def load_config() -> dict:
         )
     if config["analysis"] not in {"mic", "mutual_information"}:
         raise ValueError("analysis must be 'mic' or 'mutual_information'")
+    if not isinstance(config["spectrogram"], bool):
+        raise ValueError("spectrogram must be true or false")
     return config
 
 
@@ -97,6 +101,23 @@ def print_matrix(matrix: pd.DataFrame, digits: int, color_output: bool) -> None:
     Console().print(table)
 
 
+def show_spectrogram(matrix: pd.DataFrame, title: str) -> None:
+    """Display the result matrix as a color spectrogram."""
+    size = max(7.0, min(16.0, 0.65 * len(matrix.columns) + 3.0))
+    figure, axis = plt.subplots(figsize=(size, size))
+    image = axis.imshow(matrix.to_numpy(dtype=float), cmap="viridis", aspect="auto")
+    positions = range(len(matrix.columns))
+    axis.set_xticks(positions, [str(column) for column in matrix.columns])
+    axis.set_yticks(positions, [str(index) for index in matrix.index])
+    axis.tick_params(axis="x", labelrotation=45)
+    axis.set_xlabel("Variable")
+    axis.set_ylabel("Variable")
+    axis.set_title(f"{title} spectrogram")
+    figure.colorbar(image, ax=axis, label="Coefficient")
+    figure.tight_layout()
+    plt.show()
+
+
 def main() -> None:
     """Load the configured CSV, calculate the selected model, and output it."""
     config = load_config()
@@ -133,6 +154,9 @@ def main() -> None:
         output_path = config_directory / Path(config["output_csv"])
         result.to_csv(output_path)
         print(f"\nSaved results to: {output_path.resolve()}")
+
+    if config["spectrogram"]:
+        show_spectrogram(result, analysis_name)
 
 
 if __name__ == "__main__":

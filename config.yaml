@@ -40,6 +40,9 @@ round_digits: 3
 # Display the terminal matrix with heatmap-style colors.
 color_output: true
 
+# Open a graphical spectrogram of the result matrix after analysis.
+spectrogram: true
+
 # Set to a filename such as mi_results.csv to save the output.
 # Keep this null to only display the matrix.
 output_csv: null

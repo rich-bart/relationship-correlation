@@ -56,6 +56,7 @@ missing: pairwise
 base: 2.0
 round_digits: 3
 color_output: true
+spectrogram: false
 output_csv: null
 alpha: 0.6
 max_bins: null
@@ -74,6 +75,7 @@ max_bins: null
 | `base` | Logarithm base. Use `2.0` to report non-normalized mutual information in bits. |
 | `round_digits` | Number of decimal places printed in the terminal. |
 | `color_output` | Set to `true` for a colored terminal matrix or `false` for plain text. |
+| `spectrogram` | Set to `true` to open a graphical color map of the result matrix. |
 | `output_csv` | Output filename for the matrix, or `null` to only print it. |
 | `alpha` | MIC grid-budget exponent; the default is `0.6`. |
 | `max_bins` | Optional MIC grid-budget cap, or `null` for no cap. |
