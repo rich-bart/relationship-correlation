@@ -1,4 +1,7 @@
-# Mutual-information analysis configuration
+# Relationship analysis configuration
+
+# Analysis to run: mic or mutual_information
+analysis: mic
 
 # CSV file to analyze. Relative paths are resolved from this YAML file.
 input_csv: datasets/sample_track_data.csv
@@ -23,6 +26,13 @@ missing: pairwise
 
 # Logarithm base. A value of 2 reports non-normalized MI in bits.
 base: 2.0
+
+# MIC grid-budget exponent. Used only when analysis is mic.
+alpha: 0.6
+
+# Optional MIC grid-budget cap. Use null for no additional cap.
+# A cap can make analysis of large datasets run faster.
+max_bins: null
 
 # Decimal places displayed in the terminal.
 round_digits: 3

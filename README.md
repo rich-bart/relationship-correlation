@@ -1,8 +1,14 @@
-# Mutual Information
+# Mutual Information and MIC
 
 Compute pairwise mutual information between every column in a CSV dataset.
 The project supports discrete and continuous variables, normalized results,
 and configurable missing-data handling.
+
+The Python API also provides a dependency-free maximal information coefficient
+(MIC) estimator for numeric variables. It searches equal-frequency grids under
+the standard `B(n) = n ** alpha` grid budget and returns the largest normalized
+grid mutual information. This is a deterministic approximation of the
+exhaustive MIC grid optimization.
 
 Users configure an analysis in `config.yaml`; no Python files need to be
 edited.
@@ -42,6 +48,7 @@ Edit `config.yaml` before running the analysis:
 
 ```yaml
 input_csv: datasets/sample_dataset.csv
+analysis: mic
 discrete: auto
 bins: auto
 normalize: true
@@ -50,12 +57,15 @@ base: 2.0
 round_digits: 3
 color_output: true
 output_csv: null
+alpha: 0.6
+max_bins: null
 ```
 
 ### Settings
 
 | Setting | Description |
 | --- | --- |
+| `analysis` | Selects `mic` or `mutual_information`. |
 | `input_csv` | Path to the input CSV file. Relative paths start from the directory containing `config.yaml`. |
 | `discrete` | Controls which variables are treated as discrete. See the options below. |
 | `bins` | Histogram rule, bin count, or bin-edge list used for continuous variables. |
@@ -65,6 +75,8 @@ output_csv: null
 | `round_digits` | Number of decimal places printed in the terminal. |
 | `color_output` | Set to `true` for a colored terminal matrix or `false` for plain text. |
 | `output_csv` | Output filename for the matrix, or `null` to only print it. |
+| `alpha` | MIC grid-budget exponent; the default is `0.6`. |
+| `max_bins` | Optional MIC grid-budget cap, or `null` for no cap. |
 
 The `discrete` setting accepts:
 
@@ -111,6 +123,10 @@ After editing `config.yaml`, run:
 ```powershell
 python runner.py
 ```
+
+With `analysis: mic`, all selected CSV columns must be numeric. Settings such
+as `discrete`, `bins`, `normalize`, and `base` apply only when `analysis` is
+`mutual_information`.
 
 The included sample configuration analyzes `datasets/sample_dataset.csv`,
 which has 1,000 rows and eight columns named `col1` through `col8`.
@@ -186,6 +202,23 @@ score = mutual_information(
 print(score)
 ```
 
+Calculate MIC for two numeric variables or every DataFrame column:
+
+```python
+from models.maximal_information_coefficient import (
+    maximal_information_coefficient,
+    maximal_information_coefficient_matrix,
+)
+
+score = maximal_information_coefficient(x, y)
+matrix = maximal_information_coefficient_matrix(data)
+```
+
+MIC values range from 0 to 1. The optional `alpha` argument controls the grid
+budget (default `0.6`), while `max_bins` can cap that budget for large inputs.
+Missing values may be dropped or rejected for a pair; matrix calculations also
+support pairwise and listwise deletion.
+
 ## Project layout
 
 ```text
@@ -221,7 +254,7 @@ relationship-correlation/
 - `runner.py`: loads the configuration and runs the analysis
 - `plotter.py`: plots time versus range for the sample track data
 - `models/mutual_information/`: mutual-information API and private helpers
-- `models/maximal_information_coefficient/`: scaffold for the future MIC model;
-  it does not contain an algorithm yet
+- `models/maximal_information_coefficient/`: MIC estimator, characteristic
+  matrix, grid search, normalization, and validation helpers
 - `datasets/sample_dataset.csv`: example input dataset
 - `datasets/sample_track_data.csv`: example three-track position dataset

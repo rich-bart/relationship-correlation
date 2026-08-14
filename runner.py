@@ -2,7 +2,7 @@
 Copyright (c) 2026 Richard Bartlewitz. All Rights Reserved.
 Author: Richard Bartlewitz
 Creation: July 2026
-Purpose: Runner for mutual Information analysis
+Purpose: Runner for mutual information and MIC analysis
 """
 
 from pathlib import Path
@@ -12,11 +12,15 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
+from models.maximal_information_coefficient import (
+    maximal_information_coefficient_matrix,
+)
 from models.mutual_information import mutual_information_matrix
 
 
 CONFIG_PATH = Path(__file__).with_name("config.yaml")
 EXPECTED_SETTINGS = {
+    "analysis",
     "input_csv",
     "discrete",
     "bins",
@@ -26,6 +30,8 @@ EXPECTED_SETTINGS = {
     "round_digits",
     "color_output",
     "output_csv",
+    "alpha",
+    "max_bins",
 }
 
 
@@ -50,6 +56,8 @@ def load_config() -> dict:
         raise ValueError(
             f"config.yaml contains unknown settings: {sorted(unknown_settings)}"
         )
+    if config["analysis"] not in {"mic", "mutual_information"}:
+        raise ValueError("analysis must be 'mic' or 'mutual_information'")
     return config
 
 
@@ -90,7 +98,7 @@ def print_matrix(matrix: pd.DataFrame, digits: int, color_output: bool) -> None:
 
 
 def main() -> None:
-    """Load the configured CSV, calculate MI, and print/save the result."""
+    """Load the configured CSV, calculate the selected model, and output it."""
     config = load_config()
     config_directory = CONFIG_PATH.parent
     input_csv = config_directory / Path(config["input_csv"])
@@ -98,15 +106,26 @@ def main() -> None:
         raise FileNotFoundError(f"Input dataset was not found: {input_csv.resolve()}")
 
     data = pd.read_csv(input_csv)
-    result = mutual_information_matrix(
-        data,
-        discrete=config["discrete"],
-        bins=config["bins"],
-        normalize=config["normalize"],
-        missing=config["missing"],
-        base=config["base"],
-    )
+    if config["analysis"] == "mic":
+        result = maximal_information_coefficient_matrix(
+            data,
+            alpha=config["alpha"],
+            max_bins=config["max_bins"],
+            missing=config["missing"],
+        )
+        analysis_name = "Maximal information coefficient"
+    else:
+        result = mutual_information_matrix(
+            data,
+            discrete=config["discrete"],
+            bins=config["bins"],
+            normalize=config["normalize"],
+            missing=config["missing"],
+            base=config["base"],
+        )
+        analysis_name = "Mutual information"
 
+    print(f"Analysis: {analysis_name}")
     print(f"Dataset: {input_csv} ({len(data)} rows, {len(data.columns)} columns)")
     print_matrix(result, config["round_digits"], config["color_output"])
 
