@@ -64,6 +64,8 @@ alpha: 0.6
 max_bins: null
 permutations: 100
 random_seed: 42
+multiple_comparison: benjamini_hochberg
+significance_level: 0.05
 ```
 
 ### Settings
@@ -87,6 +89,8 @@ random_seed: 42
 | `max_bins` | Optional MIC grid-budget cap, or `null` for no cap. |
 | `permutations` | Number of label shuffles used for empirical p-values. Use `0` to disable; larger values increase runtime and p-value resolution. |
 | `random_seed` | Integer seed that makes permutation results reproducible. |
+| `multiple_comparison` | Use `benjamini_hochberg` to control false discoveries or `none` to retain raw p-values only. |
+| `significance_level` | Adjusted p-value threshold used for the `Significant` result. |
 
 The `discrete` setting accepts:
 
@@ -168,7 +172,10 @@ from this ranking; the complete pairwise outputs are still produced.
 When `permutations` is greater than zero, both ranked CSV files include an
 empirical `P-value`. For each pair, one variable is shuffled repeatedly and the
 p-value is `(null scores >= observed score + 1) / (permutations + 1)`. These are
-raw p-values; multiple-comparison correction is not yet applied.
+raw p-values. With `multiple_comparison: benjamini_hochberg`, each output also
+contains `Adjusted P-value` and `Significant`. Correction is applied separately
+to the complete pair family and the target-focused family, since they answer
+different questions.
 
 ```text
        col1   col2   col3   col4   col5   col6   col7   col8

@@ -44,6 +44,8 @@ EXPECTED_SETTINGS = {
     "target_column",
     "permutations",
     "random_seed",
+    "multiple_comparison",
+    "significance_level",
 }
 
 
@@ -84,6 +86,14 @@ def load_config() -> dict:
         raise ValueError("permutations must be a nonnegative integer")
     if not isinstance(config["random_seed"], int):
         raise ValueError("random_seed must be an integer")
+    if config["multiple_comparison"] not in {"benjamini_hochberg", "none"}:
+        raise ValueError(
+            "multiple_comparison must be 'benjamini_hochberg' or 'none'"
+        )
+    if not isinstance(config["significance_level"], (int, float)) or not (
+        0 < config["significance_level"] < 1
+    ):
+        raise ValueError("significance_level must be greater than 0 and less than 1")
     return config
 
 
@@ -146,7 +156,13 @@ def print_feature_pairs(
     if not color_output:
         print("\nRanked feature pairs:")
         print(
-            output.round({"Coefficient": digits, "P-value": digits})
+            output.round(
+                {
+                    "Coefficient": digits,
+                    "P-value": digits,
+                    "Adjusted P-value": digits,
+                }
+            )
             .to_string(index=False)
         )
         return
@@ -161,11 +177,16 @@ def print_feature_pairs(
     table.add_column("Coefficient", justify="right")
     if "P-value" in output:
         table.add_column("P-value", justify="right")
+    if "Adjusted P-value" in output:
+        table.add_column("Adjusted P-value", justify="right")
+        table.add_column("Significant", justify="center")
     for row in output.itertuples(index=False, name=None):
         feature_1, feature_2, coefficient, *statistics = row
         cells = [feature_1, feature_2, f"{coefficient:.{digits}f}"]
-        if statistics:
-            cells.append(f"{statistics[0]:.{digits}f}")
+        cells.extend(
+            f"{value:.{digits}f}" if isinstance(value, (float, np.floating)) else str(value)
+            for value in statistics
+        )
         table.add_row(*cells)
     Console().print(table)
 
@@ -189,7 +210,15 @@ def print_target_features(
     """Print a target-focused feature ranking."""
     if not color_output:
         print("\nFeatures ranked against target:")
-        print(table_data.round({"Coefficient": digits}).to_string(index=False))
+        print(
+            table_data.round(
+                {
+                    "Coefficient": digits,
+                    "P-value": digits,
+                    "Adjusted P-value": digits,
+                }
+            ).to_string(index=False)
+        )
         return
 
     table = Table(
@@ -202,11 +231,16 @@ def print_target_features(
     table.add_column("Coefficient", justify="right")
     if "P-value" in table_data:
         table.add_column("P-value", justify="right")
+    if "Adjusted P-value" in table_data:
+        table.add_column("Adjusted P-value", justify="right")
+        table.add_column("Significant", justify="center")
     for row in table_data.itertuples(index=False, name=None):
         feature, target, coefficient, *statistics = row
         cells = [feature, target, f"{coefficient:.{digits}f}"]
-        if statistics:
-            cells.append(f"{statistics[0]:.{digits}f}")
+        cells.extend(
+            f"{value:.{digits}f}" if isinstance(value, (float, np.floating)) else str(value)
+            for value in statistics
+        )
         table.add_row(*cells)
     Console().print(table)
 
@@ -284,6 +318,28 @@ def add_permutation_p_values(
         p_values.append((exceedances + 1) / (count + 1))
     output = table_data.copy()
     output["P-value"] = p_values
+    return output
+
+
+def add_multiple_comparison_correction(
+    table_data: pd.DataFrame,
+    method: str,
+    significance_level: float,
+) -> pd.DataFrame:
+    """Add adjusted p-values and decisions for one family of comparisons."""
+    if method == "none" or "P-value" not in table_data:
+        return table_data
+    p_values = table_data["P-value"].to_numpy(dtype=float)
+    count = len(p_values)
+    order = np.argsort(p_values, kind="stable")
+    ranked = p_values[order]
+    adjusted_ranked = ranked * count / np.arange(1, count + 1)
+    adjusted_ranked = np.minimum.accumulate(adjusted_ranked[::-1])[::-1]
+    adjusted = np.empty(count, dtype=float)
+    adjusted[order] = np.clip(adjusted_ranked, 0.0, 1.0)
+    output = table_data.copy()
+    output["Adjusted P-value"] = adjusted
+    output["Significant"] = adjusted <= significance_level
     return output
 
 
@@ -420,6 +476,11 @@ def main() -> None:
             config,
             ("Feature", "Target"),
         )
+        target_features = add_multiple_comparison_correction(
+            target_features,
+            config["multiple_comparison"],
+            config["significance_level"],
+        )
         print_target_features(
             target_features,
             config["round_digits"],
@@ -433,6 +494,11 @@ def main() -> None:
         permutation_data,
         config,
         ("Feature 1", "Feature 2"),
+    )
+    feature_pairs = add_multiple_comparison_correction(
+        feature_pairs,
+        config["multiple_comparison"],
+        config["significance_level"],
     )
     print_feature_pairs(
         feature_pairs, config["round_digits"], config["color_output"]

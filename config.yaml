@@ -55,6 +55,13 @@ permutations: 100
 # Makes permutation p-values reproducible across runs.
 random_seed: 42
 
+# Correct raw p-values across all comparisons. Options: benjamini_hochberg, none
+# benjamini_hochberg = adjusted p = raw p × number of tests / rank
+multiple_comparison: benjamini_hochberg
+
+# Adjusted p-values at or below this threshold are marked significant.
+significance_level: 0.05
+
 # Decimal places displayed in the terminal.
 round_digits: 3
 
