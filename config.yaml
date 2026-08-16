@@ -1,7 +1,7 @@
 # Relationship analysis configuration
 
-# Analysis to run: mic or mutual_information
-analysis: mutual_information
+# Analysis to run: mutual_information, mic, or pearson
+analysis: pearson
 
 # CSV file to analyze. Relative paths are resolved from this YAML file.
 input_csv: datasets/pokemon/pokemon_complete_2025.csv

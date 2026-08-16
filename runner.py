@@ -23,6 +23,7 @@ from models.mutual_information.discretization import _discretize
 from models.mutual_information.encoding import _factorize
 from models.mutual_information.missing_values import _is_missing
 from models.mutual_information.type_inference import _infer_discrete
+from models.pearson import pearson_correlation, pearson_correlation_matrix
 
 
 CONFIG_PATH = Path(__file__).with_name("config.yaml")
@@ -70,8 +71,10 @@ def load_config() -> dict:
         raise ValueError(
             f"config.yaml contains unknown settings: {sorted(unknown_settings)}"
         )
-    if config["analysis"] not in {"mic", "mutual_information"}:
-        raise ValueError("analysis must be 'mic' or 'mutual_information'")
+    if config["analysis"] not in {"mic", "mutual_information", "pearson"}:
+        raise ValueError(
+            "analysis must be 'mic', 'mutual_information', or 'pearson'"
+        )
     if not isinstance(config["spectrogram"], bool):
         raise ValueError("spectrogram must be true or false")
     if not isinstance(config["exclude_columns"], list) or not all(
@@ -133,7 +136,9 @@ def print_matrix(matrix: pd.DataFrame, digits: int, color_output: bool) -> None:
     Console().print(table)
 
 
-def feature_pair_table(matrix: pd.DataFrame) -> pd.DataFrame:
+def feature_pair_table(
+    matrix: pd.DataFrame, *, absolute_sort: bool = False
+) -> pd.DataFrame:
     """Return every unique feature pair ranked by its coefficient."""
     pairs = [
         (str(matrix.index[i]), str(matrix.columns[j]), float(matrix.iloc[i, j]))
@@ -141,7 +146,10 @@ def feature_pair_table(matrix: pd.DataFrame) -> pd.DataFrame:
         for j in range(i + 1, len(matrix.columns))
         if pd.notna(matrix.iloc[i, j])
     ]
-    pairs.sort(key=lambda pair: pair[2], reverse=True)
+    pairs.sort(
+        key=lambda pair: abs(pair[2]) if absolute_sort else pair[2],
+        reverse=True,
+    )
     output = pd.DataFrame(
         pairs, columns=["Feature 1", "Feature 2", "Coefficient"]
     )
@@ -192,7 +200,7 @@ def print_feature_pairs(
 
 
 def target_feature_table(
-    matrix: pd.DataFrame, target_column: str
+    matrix: pd.DataFrame, target_column: str, *, absolute_sort: bool = False
 ) -> pd.DataFrame:
     """Return all non-target features ranked by association with the target."""
     rows = [
@@ -200,7 +208,10 @@ def target_feature_table(
         for feature in matrix.index
         if feature != target_column and pd.notna(matrix.loc[feature, target_column])
     ]
-    rows.sort(key=lambda row: row[2], reverse=True)
+    rows.sort(
+        key=lambda row: abs(row[2]) if absolute_sort else row[2],
+        reverse=True,
+    )
     return pd.DataFrame(rows, columns=["Feature", "Target", "Coefficient"])
 
 
@@ -272,7 +283,11 @@ def add_permutation_p_values(
     if count == 0:
         return table_data
     rng = np.random.default_rng(config["random_seed"])
-    kinds = _discrete_column_map(data, config["discrete"])
+    kinds = (
+        _discrete_column_map(data, config["discrete"])
+        if config["analysis"] != "pearson"
+        else {}
+    )
     p_values = []
     for _, row in table_data.iterrows():
         left = row[feature_columns[0]]
@@ -307,14 +322,20 @@ def add_permutation_p_values(
                     missing="raise", discrete_x=kinds[left],
                     discrete_y=kinds[right],
                 )
-            else:
+            elif config["analysis"] == "mutual_information":
                 score = _encoded_mutual_information(
                     x_labels,
                     rng.permutation(y_labels),
                     config["normalize"],
                     config["base"],
                 )
-            exceedances += score >= observed
+            else:
+                score = pearson_correlation(x, rng.permutation(y), missing="raise")
+            exceedances += (
+                abs(score) >= abs(observed)
+                if config["analysis"] == "pearson"
+                else score >= observed
+            )
         p_values.append((exceedances + 1) / (count + 1))
     output = table_data.copy()
     output["P-value"] = p_values
@@ -391,7 +412,14 @@ def show_spectrogram(
         display_error = error
     else:
         display_error = None
-    image = axis.imshow(matrix.to_numpy(dtype=float), cmap="viridis", aspect="auto")
+    is_signed = title == "Pearson correlation"
+    image = axis.imshow(
+        matrix.to_numpy(dtype=float),
+        cmap="coolwarm" if is_signed else "viridis",
+        aspect="auto",
+        vmin=-1 if is_signed else None,
+        vmax=1 if is_signed else None,
+    )
     positions = range(len(matrix.columns))
     axis.set_xticks(positions, [str(column) for column in matrix.columns])
     axis.set_yticks(positions, [str(index) for index in matrix.index])
@@ -428,8 +456,18 @@ def main() -> None:
     skipped_exclusions = [
         column for column in configured_exclusions if column not in data.columns
     ]
+    skipped_nonnumeric = []
     if excluded:
         data = data.drop(columns=excluded)
+    if config["analysis"] == "pearson":
+        nonnumeric_columns = [
+            column
+            for column in data.columns
+            if not pd.api.types.is_numeric_dtype(data[column])
+        ]
+        if nonnumeric_columns:
+            data = data.drop(columns=nonnumeric_columns)
+            skipped_nonnumeric = nonnumeric_columns
     if data.shape[1] < 2:
         raise ValueError("at least two columns must remain after exclusions")
     target_column = config["target_column"]
@@ -448,7 +486,7 @@ def main() -> None:
             discrete=config["discrete"],
         )
         analysis_name = "Maximal information coefficient"
-    else:
+    elif config["analysis"] == "mutual_information":
         result = mutual_information_matrix(
             data,
             discrete=config["discrete"],
@@ -458,6 +496,9 @@ def main() -> None:
             base=config["base"],
         )
         analysis_name = "Mutual information"
+    else:
+        result = pearson_correlation_matrix(data, missing=config["missing"])
+        analysis_name = "Pearson correlation"
 
     print(f"Analysis: {analysis_name}")
     print(f"Dataset: {input_csv} ({len(data)} rows, {len(data.columns)} columns)")
@@ -469,7 +510,11 @@ def main() -> None:
 
     print_matrix(result, config["round_digits"], config["color_output"])
     if target_column is not None:
-        target_features = target_feature_table(result, target_column)
+        target_features = target_feature_table(
+            result,
+            target_column,
+            absolute_sort=config["analysis"] == "pearson",
+        )
         target_features = add_permutation_p_values(
             target_features,
             permutation_data,
@@ -488,7 +533,9 @@ def main() -> None:
         )
         target_features_path = config_directory / "target_features.csv"
         target_features.to_csv(target_features_path, index=False)
-    feature_pairs = feature_pair_table(result)
+    feature_pairs = feature_pair_table(
+        result, absolute_sort=config["analysis"] == "pearson"
+    )
     feature_pairs = add_permutation_p_values(
         feature_pairs,
         permutation_data,
@@ -511,6 +558,11 @@ def main() -> None:
         print(
             "Skipped exclusions not found in dataset: "
             f"{', '.join(skipped_exclusions)}"
+        )
+    if skipped_nonnumeric:
+        print(
+            "Skipped nonnumeric columns for Pearson: "
+            f"{', '.join(skipped_nonnumeric)}"
         )
     print(f"\nSaved feature pairs to: {feature_pairs_path.resolve()}")
     if target_column is not None:

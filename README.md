@@ -1,4 +1,4 @@
-# Mutual Information and MIC
+# Relationship Correlation Analysis
 
 Compute pairwise mutual information between every column in a CSV dataset.
 The project supports discrete and continuous variables, normalized results,
@@ -72,7 +72,7 @@ significance_level: 0.05
 
 | Setting | Description |
 | --- | --- |
-| `analysis` | Selects `mic` or `mutual_information`. |
+| `analysis` | Selects `mutual_information`, `mic`, or `pearson`. |
 | `input_csv` | Path to the input CSV file. Relative paths start from the directory containing `config.yaml`. |
 | `target_column` | Optional outcome column. When set, features are ranked against it and saved to `target_features.csv`. Use `null` to disable. |
 | `exclude_columns` | Column names to remove before calculating the relationship matrix. Names absent from the dataset are skipped. Use `[]` to keep every column. |
@@ -142,6 +142,12 @@ With `analysis: mic`, `discrete: auto` detects text and categorical columns and
 encodes their values as discrete category labels. The named-column and boolean
 mask forms of `discrete` work for MIC as well. Settings such as `bins`,
 `normalize`, and `base` apply only when `analysis` is `mutual_information`.
+
+With `analysis: pearson`, only numeric columns are analyzed; text columns are
+skipped and reported. Coefficients range from `-1` to `1`, retain their sign,
+and are ranked by absolute magnitude. Pearson permutation tests are two-sided,
+comparing the absolute observed and shuffled coefficients. The spectrogram uses
+a centered blue-to-red scale for negative and positive relationships.
 
 The included sample configuration analyzes `datasets/sample_dataset.csv`,
 which has 1,000 rows and eight columns named `col1` through `col8`.
