@@ -72,7 +72,7 @@ significance_level: 0.05
 
 | Setting | Description |
 | --- | --- |
-| `analysis` | Selects `mutual_information`, `mic`, or `pearson`. |
+| `analysis` | Selects `mutual_information`, `mic`, `pearson`, or `spearman`. |
 | `input_csv` | Path to the input CSV file. Relative paths start from the directory containing `config.yaml`. |
 | `target_column` | Optional outcome column. When set, features are ranked against it and saved to `target_features.csv`. Use `null` to disable. |
 | `exclude_columns` | Column names to remove before calculating the relationship matrix. Names absent from the dataset are skipped. Use `[]` to keep every column. |
@@ -148,6 +148,12 @@ skipped and reported. Coefficients range from `-1` to `1`, retain their sign,
 and are ranked by absolute magnitude. Pearson permutation tests are two-sided,
 comparing the absolute observed and shuffled coefficients. The spectrogram uses
 a centered blue-to-red scale for negative and positive relationships.
+
+With `analysis: spearman`, numeric values are converted to average ranks before
+correlation. This detects increasing or decreasing monotonic relationships that
+need not be linear and handles tied values. Like Pearson, Spearman produces
+signed coefficients, absolute-strength rankings, two-sided permutation tests,
+and a centered spectrogram; nonnumeric columns are skipped and reported.
 
 The included sample configuration analyzes `datasets/sample_dataset.csv`,
 which has 1,000 rows and eight columns named `col1` through `col8`.

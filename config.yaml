@@ -1,6 +1,6 @@
 # Relationship analysis configuration
 
-# Analysis to run: mutual_information, mic, or pearson
+# Analysis to run: mutual_information, mic, pearson, or spearman
 analysis: pearson
 
 # CSV file to analyze. Relative paths are resolved from this YAML file.

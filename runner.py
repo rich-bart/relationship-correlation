@@ -24,6 +24,7 @@ from models.mutual_information.encoding import _factorize
 from models.mutual_information.missing_values import _is_missing
 from models.mutual_information.type_inference import _infer_discrete
 from models.pearson import pearson_correlation, pearson_correlation_matrix
+from models.spearman import spearman_correlation, spearman_correlation_matrix
 
 
 CONFIG_PATH = Path(__file__).with_name("config.yaml")
@@ -71,9 +72,12 @@ def load_config() -> dict:
         raise ValueError(
             f"config.yaml contains unknown settings: {sorted(unknown_settings)}"
         )
-    if config["analysis"] not in {"mic", "mutual_information", "pearson"}:
+    if config["analysis"] not in {
+        "mic", "mutual_information", "pearson", "spearman"
+    }:
         raise ValueError(
-            "analysis must be 'mic', 'mutual_information', or 'pearson'"
+            "analysis must be 'mic', 'mutual_information', 'pearson', or "
+            "'spearman'"
         )
     if not isinstance(config["spectrogram"], bool):
         raise ValueError("spectrogram must be true or false")
@@ -285,7 +289,7 @@ def add_permutation_p_values(
     rng = np.random.default_rng(config["random_seed"])
     kinds = (
         _discrete_column_map(data, config["discrete"])
-        if config["analysis"] != "pearson"
+        if config["analysis"] not in {"pearson", "spearman"}
         else {}
     )
     p_values = []
@@ -329,11 +333,13 @@ def add_permutation_p_values(
                     config["normalize"],
                     config["base"],
                 )
-            else:
+            elif config["analysis"] == "pearson":
                 score = pearson_correlation(x, rng.permutation(y), missing="raise")
+            else:
+                score = spearman_correlation(x, rng.permutation(y), missing="raise")
             exceedances += (
                 abs(score) >= abs(observed)
-                if config["analysis"] == "pearson"
+                if config["analysis"] in {"pearson", "spearman"}
                 else score >= observed
             )
         p_values.append((exceedances + 1) / (count + 1))
@@ -412,7 +418,7 @@ def show_spectrogram(
         display_error = error
     else:
         display_error = None
-    is_signed = title == "Pearson correlation"
+    is_signed = title in {"Pearson correlation", "Spearman correlation"}
     image = axis.imshow(
         matrix.to_numpy(dtype=float),
         cmap="coolwarm" if is_signed else "viridis",
@@ -459,7 +465,7 @@ def main() -> None:
     skipped_nonnumeric = []
     if excluded:
         data = data.drop(columns=excluded)
-    if config["analysis"] == "pearson":
+    if config["analysis"] in {"pearson", "spearman"}:
         nonnumeric_columns = [
             column
             for column in data.columns
@@ -496,9 +502,12 @@ def main() -> None:
             base=config["base"],
         )
         analysis_name = "Mutual information"
-    else:
+    elif config["analysis"] == "pearson":
         result = pearson_correlation_matrix(data, missing=config["missing"])
         analysis_name = "Pearson correlation"
+    else:
+        result = spearman_correlation_matrix(data, missing=config["missing"])
+        analysis_name = "Spearman correlation"
 
     print(f"Analysis: {analysis_name}")
     print(f"Dataset: {input_csv} ({len(data)} rows, {len(data.columns)} columns)")
@@ -513,7 +522,7 @@ def main() -> None:
         target_features = target_feature_table(
             result,
             target_column,
-            absolute_sort=config["analysis"] == "pearson",
+            absolute_sort=config["analysis"] in {"pearson", "spearman"},
         )
         target_features = add_permutation_p_values(
             target_features,
@@ -534,7 +543,7 @@ def main() -> None:
         target_features_path = config_directory / "target_features.csv"
         target_features.to_csv(target_features_path, index=False)
     feature_pairs = feature_pair_table(
-        result, absolute_sort=config["analysis"] == "pearson"
+        result, absolute_sort=config["analysis"] in {"pearson", "spearman"}
     )
     feature_pairs = add_permutation_p_values(
         feature_pairs,
@@ -561,7 +570,7 @@ def main() -> None:
         )
     if skipped_nonnumeric:
         print(
-            "Skipped nonnumeric columns for Pearson: "
+            f"Skipped nonnumeric columns for {analysis_name}: "
             f"{', '.join(skipped_nonnumeric)}"
         )
     print(f"\nSaved feature pairs to: {feature_pairs_path.resolve()}")
